@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codeforces Submission Compare</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; color: #212121; text-align: center; }
+        
+        /* Stats Sections */
+        .stats-container {
+            display: none; /* Hidden by default */
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            background-color: #fafafa;
+            border-radius: 8px;
+        }
+        .stats-header { margin: 0 0 15px 0; font-size: 1.1em; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .rating-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        
+        .rating-box {
+            padding: 6px 12px;
+            border-radius: 4px;
+            background: white;
+            border: 1px solid #ccc;
+            font-size: 0.9em;
+            font-weight: bold;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Codeforces Rating Colors */
+        .user-gray { color: #808080; border-color: #808080; }     /* Newbie */
+        .user-green { color: #008000; border-color: #008000; }    /* Pupil */
+        .user-cyan { color: #03a89e; border-color: #03a89e; }     /* Specialist */
+        .user-blue { color: #0000ff; border-color: #0000ff; }     /* Expert */
+        .user-violet { color: #a0a; border-color: #a0a; }         /* Candidate Master */
+        .user-orange { color: #ff8c00; border-color: #ff8c00; }   /* Master */
+        .user-red { color: #ff0000; border-color: #ff0000; }      /* Grandmaster */
+
+        /* Input Grid */
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+        .control-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 8px; font-weight: 600; font-size: 0.9em; color: #555; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        input:focus { border-color: #2196F3; outline: none; }
+        
+        button {
+            grid-column: span 2;
+            padding: 12px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1976D2; }
+        
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background-color: #333; color: white; font-weight: 500; }
+        tr:hover { background-color: #f9f9f9; }
+        
+        a { text-decoration: none; color: #007bff; font-weight: 600; }
+        a:hover { text-decoration: underline; }
+        
+        /* Table Row Colors */
+        .solved-by-me { background-color: #d4edc9 !important; border-left: 5px solid #4caf50; }
+        .ac-text { color: #2e7d32; font-weight: bold; }
+        .todo-text { color: #999; font-style: italic; }
+        
+        .status-line { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-top: 15px; 
+            color: #666; 
+            font-size: 0.9em;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Codeforces Comparator</h2>
+
+    <div id="statsSection" class="stats-container">
+        <h3 class="stats-header">Stats for <span id="statsHandle" style="color:#2196F3"></span> (All Time): <span id="totalSolved">0</span> Solved</h3>
+        <div id="ratingBreakdown" class="rating-grid"></div>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>Target User Handle</label>
+            <input type="text" id="targetHandle" value="temporary1" onkeydown="if(event.key==='Enter') fetchAndCompare()">
+        </div>
+        <div class="control-group">
+            <label>My Handle</label>
+            <input type="text" id="myHandle" value="zeyrugan" onkeydown="if(event.key==='Enter') fetchAndCompare()">
+        </div>
+        <div class="control-group">
+            <label>Min Rating</label>
+            <input type="number" id="minRating" value="800" onkeydown="if(event.key==='Enter') fetchAndCompare()">
+        </div>
+        <div class="control-group">
+            <label>Max Rating</label>
+            <input type="number" id="maxRating" value="3500" onkeydown="if(event.key==='Enter') fetchAndCompare()">
+        </div>
+        <button onclick="fetchAndCompare()">Get Submissions & Compare</button>
+    </div>
+
+    <div id="compareStatsSection" class="stats-container" style="border-left: 5px solid #2196F3;">
+        <h3 class="stats-header">
+            Result: You solved <span id="myMatchedTotal" style="color:green">0</span> / <span id="targetTotalInRange">0</span> 
+            of Target's problems in this range.
+        </h3>
+        <p style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">(Breakdown of the problems <b>you</b> have completed from the list below)</p>
+        <div id="compareRatingBreakdown" class="rating-grid"></div>
+    </div>
+
+    <div class="status-line">
+        <div id="statusMsg"></div>
+        <div id="lastUpdated"></div>
+    </div>
+    
+    <table id="resultsTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Problem Name (Link)</th>
+                <th>Rating</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+</div>
+
+<script>
+    function getRatingColorClass(rating) {
+        if (rating < 1200) return 'user-gray';
+        if (rating < 1400) return 'user-green';
+        if (rating < 1600) return 'user-cyan';
+        if (rating < 1900) return 'user-blue';
+        if (rating < 2100) return 'user-violet';
+        if (rating < 2400) return 'user-orange';
+        return 'user-red';
+    }
+
+    function renderStats(containerId, dataMap) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        const sortedRatings = Object.keys(dataMap).sort((a, b) => parseInt(a) - parseInt(b));
+        
+        sortedRatings.forEach(rating => {
+            const count = dataMap[rating];
+            const colorClass = getRatingColorClass(rating);
+            
+            const box = document.createElement('div');
+            box.className = `rating-box ${colorClass}`;
+            box.innerHTML = `${rating}: ${count}`;
+            container.appendChild(box);
+        });
+    }
+
+    async function fetchSubmissions(handle) {
+        if (!handle) return [];
+        try {
+            const response = await fetch(`https://codeforces.com/api/user.status?handle=${handle}`);
+            const data = await response.json();
+            
+            if (data.status !== "OK") {
+                console.error(`Error fetching ${handle}: ${data.comment}`);
+                return [];
+            }
+            return data.result;
+        } catch (error) {
+            console.error(error);
+            return [];
+        }
+    }
+
+    async function fetchAndCompare() {
+        // 1. GET VALUES FROM INPUT BOXES
+        // .value grabs whatever is currently typed in the box
+        const targetHandle = document.getElementById('targetHandle').value.trim();
+        const myHandle = document.getElementById('myHandle').value.trim();
+        const minRating = parseInt(document.getElementById('minRating').value) || 0;
+        const maxRating = parseInt(document.getElementById('maxRating').value) || 9999;
+        
+        const tableBody = document.querySelector('#resultsTable tbody');
+        const statusMsg = document.getElementById('statusMsg');
+        const lastUpdated = document.getElementById('lastUpdated');
+        const statsSection = document.getElementById('statsSection');
+        const compareStatsSection = document.getElementById('compareStatsSection');
+
+        if (!targetHandle) {
+            statusMsg.textContent = "Please enter a Target User handle.";
+            return;
+        }
+
+        statusMsg.textContent = "Updating data...";
+        
+        // Fetch data
+        const [targetSubs, mySubs] = await Promise.all([
+            fetchSubmissions(targetHandle),
+            myHandle ? fetchSubmissions(myHandle) : Promise.resolve([])
+        ]);
+
+        if(targetSubs.length === 0 && mySubs.length === 0) {
+            statusMsg.textContent = "Failed to fetch data (Check handles or API status).";
+            return;
+        }
+
+        // --- 1. Process My Stats (All Time) ---
+        const mySolvedSet = new Set(); 
+        const myRatingCounts = {};     
+        let myTotalUniqueSolved = 0;
+
+        if (mySubs.length > 0) {
+            mySubs.forEach(sub => {
+                if (sub.verdict === 'OK' && sub.problem) {
+                    const id = `${sub.problem.contestId}-${sub.problem.index}`;
+                    if (!mySolvedSet.has(id)) {
+                        mySolvedSet.add(id);
+                        myTotalUniqueSolved++;
+                        if (sub.problem.rating) {
+                            const r = sub.problem.rating;
+                            myRatingCounts[r] = (myRatingCounts[r] || 0) + 1;
+                        }
+                    }
+                }
+            });
+        }
+
+        if (myHandle) {
+            statsSection.style.display = 'block';
+            document.getElementById('statsHandle').textContent = myHandle;
+            document.getElementById('totalSolved').textContent = myTotalUniqueSolved;
+            renderStats('ratingBreakdown', myRatingCounts);
+        }
+
+        // --- 2. Process Target User & Compare ---
+        const uniqueProblems = new Map();
+        const myMatchedCounts = {}; 
+        let myMatchedTotal = 0;
+        let targetTotalInRange = 0;
+
+        targetSubs.forEach(sub => {
+            if (sub.verdict === 'OK' && sub.problem && sub.problem.rating) {
+                const p = sub.problem;
+                const id = `${p.contestId}-${p.index}`;
+                
+                if (p.rating >= minRating && p.rating <= maxRating) {
+                    if (!uniqueProblems.has(id)) {
+                        uniqueProblems.set(id, p);
+                        targetTotalInRange++;
+                        
+                        if (mySolvedSet.has(id)) {
+                            myMatchedTotal++;
+                            myMatchedCounts[p.rating] = (myMatchedCounts[p.rating] || 0) + 1;
+                        }
+                    }
+                }
+            }
+        });
+
+        compareStatsSection.style.display = 'block';
+        document.getElementById('myMatchedTotal').textContent = myMatchedTotal;
+        document.getElementById('targetTotalInRange').textContent = targetTotalInRange;
+        renderStats('compareRatingBreakdown', myMatchedCounts);
+
+        // --- 3. Render Table ---
+        tableBody.innerHTML = ""; 
+        let count = 1;
+        const sortedProblems = Array.from(uniqueProblems.values()).sort((a, b) => a.rating - b.rating);
+
+        if (sortedProblems.length === 0) {
+            statusMsg.textContent = "No problems found in this range.";
+        } else {
+            statusMsg.textContent = `Found ${sortedProblems.length} problems.`;
+        }
+
+        sortedProblems.forEach(p => {
+            const id = `${p.contestId}-${p.index}`;
+            const isSolvedByMe = mySolvedSet.has(id);
+            
+            const tr = document.createElement('tr');
+            if (isSolvedByMe) {
+                tr.classList.add('solved-by-me');
+            }
+
+            const problemLink = `https://codeforces.com/problemset/problem/${p.contestId}/${p.index}`;
+            const statusText = isSolvedByMe 
+                ? '<span class="ac-text">Accepted</span>' 
+                : '<span class="todo-text">-</span>';
+
+            tr.innerHTML = `
+                <td>${count++}</td>
+                <td><a href="${problemLink}" target="_blank">${p.name}</a></td>
+                <td>${p.rating}</td>
+                <td>${statusText}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+        
+        const now = new Date();
+        lastUpdated.textContent = "Last Refreshed: " + now.toLocaleTimeString();
+    }
+
+    // Auto-run on load
+    window.onload = fetchAndCompare;
+    // Auto-refresh every 5 mins
+    setInterval(fetchAndCompare, 300000); 
+
+</script>
+
+</body>
+</html>
